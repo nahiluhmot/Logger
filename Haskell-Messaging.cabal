@@ -46,7 +46,7 @@ Build-type:          Simple
 Cabal-version:       >=1.2
 
 
-Library
+Executable
   -- Modules exported by the library.
   -- Exposed-modules:     
   
