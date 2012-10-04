@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+
+import Default
 import Data.List
 import Data.Word
 import Data.Maybe
@@ -12,21 +15,15 @@ import Control.Monad
 -- exist, default arguments are supplied (stdout for the file and 8808 for the
 -- port).
 main :: IO ()
-main = do (port, handle) <- processArgs
+main = do args   <- getArgs
+          port   <- mapRun getPort args
+          handle <- mapRun getFile args
           forever $ logClientMessage port handle
 
-processArgs :: IO (PortID, Handle)
-processArgs = do
-    args   <- getArgs
-    port   <- case map fromJust . filter isJust $ map getPort args of
-                  []    -> putStrLn "No port supplied (-p), using 8808."
-                        >> return (PortNumber 8808)
-                  (p:_) -> p
-    handle <- case map fromJust . filter isJust $ map getFile args of
-                  []    -> putStrLn "No file supplied (-f), using stdout."
-                        >> return stdout
-                  (f:_) -> f
-    return (port, handle)
+instance Default (IO Handle) where
+    defaultValue = return stdout
+instance Default (IO PortID) where
+    defaultValue = return (PortNumber 8808)
 
 getPort :: String -> Maybe (IO PortID)
 getPort (    '-':'p':                port) = Just . return . PortNumber $ fromIntegral (read port :: Int)
@@ -41,8 +38,7 @@ getFile _                                                      = Nothing
 openFileForLogging :: FilePath -> IO Handle
 openFileForLogging fileName = do
     exists <- doesFileExist fileName
-    openFile fileName (if exists then AppendMode
-                                 else WriteMode)
+    openFile fileName (if exists then AppendMode else WriteMode)
 
 logClientMessage :: PortID -> Handle -> IO ()
 logClientMessage port outH = withSocketsDo $ do
