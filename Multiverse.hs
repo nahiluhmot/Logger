@@ -19,9 +19,10 @@ main = withSocketsDo $ do
 
 parseOr :: Parser a -> [String] -> a -> a
 parseOr _ []     def = def
-parseOr p (x:xs) def = case parse p "" x of
-                               Left _  -> parseOr p xs def
-                               Right y -> y
+parseOr p (x:xs) def = 
+    case parse p "" x of
+        Left _  -> parseOr p xs def
+        Right y -> y
 
 parsePort :: Parser (IO PortID)
 parsePort = do
