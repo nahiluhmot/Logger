@@ -10,29 +10,30 @@ import Text.ParserCombinators.Parsec
 -- port).
 main :: IO ()
 main = withSocketsDo $ do 
-           args   <- getArgs
-           handle <- doParseAll parseFile args (return stdout)
-           port   <- doParseAll parsePort args (return (PortNumber 8808))
-           socket <- listenOn port
-           forever $ logClientMessage socket handle
-           sClose socket
+    args   <- getArgs
+    handle <- parseOr parseFile args (return stdout)
+    port   <- parseOr parsePort args (return (PortNumber 8808))
+    socket <- listenOn port
+    forever $ logClientMessage socket handle
+    sClose socket
 
-doParseAll :: Parser a -> [String] -> a -> a
-doParseAll _ []     def = def
-doParseAll p (x:xs) def = case parse p "" x of
-                               Left _  -> doParseAll p xs def
+parseOr :: Parser a -> [String] -> a -> a
+parseOr _ []     def = def
+parseOr p (x:xs) def = case parse p "" x of
+                               Left _  -> parseOr p xs def
                                Right y -> y
 
 parsePort :: Parser (IO PortID)
-parsePort = do { string "-p" <|> string "--portname="
-               ; p <- many1 digit
-               ; return . return . PortNumber $ fromIntegral (read p :: Int)
-               }
+parsePort = do
+    string "-p" <|> string "--portname="
+    p <- many1 digit
+    return . return . PortNumber $ fromIntegral (read p :: Int)
+               
 parseFile :: Parser (IO Handle)
-parseFile = do { string "-f" <|> string "--filename="
-               ; f <- many1 anyChar
-               ; return (openFileForLogging f)
-               }
+parseFile = do 
+    string "-f" <|> string "--filename="
+    f <- many1 anyChar
+    return (openFileForLogging f)
 
 openFileForLogging :: FilePath -> IO Handle
 openFileForLogging fileName = do
