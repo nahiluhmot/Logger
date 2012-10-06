@@ -42,8 +42,9 @@ parseFile :: Parser (IO Handle)
 parseFile = do 
     string "-f" <|> string "--filename="
     fileName <- many1 anyChar
-    return $ do exists <- doesFileExist fileName
-                openFile fileName $ if exists then AppendMode else WriteMode
+    return $ do
+        exists <- doesFileExist fileName
+        openFile fileName $ if exists then AppendMode else WriteMode
                 
 -- Given a socket and a handle to write to, will receive the message from the
 -- socket and write it to the handle.
