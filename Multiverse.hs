@@ -1,4 +1,4 @@
--- This file contains the server side for the logging client.
+-- This file contains the server side for the logging service.
 import Control.Monad (forever)
 import Network
 import System (getArgs)
