@@ -1,3 +1,4 @@
+-- This file contains the server side for the logging client.
 import Control.Monad (forever)
 import Network
 import System (getArgs)
@@ -17,31 +18,36 @@ main = withSocketsDo $ do
     forever $ logClientMessage socket handle
     sClose socket
 
+-- Attempt to parse the xs one by one, and on failure, return def. This function
+-- is very useful for processing command line arguments.
 parseOr :: Parser a -> [String] -> a -> a
 parseOr _ []     def = def
 parseOr p (x:xs) def = 
     case parse p "" x of
-        Left _  -> parseOr p xs def
+        Left  _ -> parseOr p xs def
         Right y -> y
 
+-- Will match anything that looks like "-p{Port}" or "--port={Port}". The
+-- port must be an integer. If the string is parseable, it will return a new 
+-- IO PortID.
 parsePort :: Parser (IO PortID)
 parsePort = do
-    string "-p" <|> string "--portname="
+    string "-p" <|> string "--port="
     p <- many1 digit
     return . return . PortNumber $ fromIntegral (read p :: Int)
                
+-- Will match anything that looks like "-f{File}" or "--filename={File}". If 
+-- the file passed in doesn't exist, it will create a new one.
 parseFile :: Parser (IO Handle)
 parseFile = do 
     string "-f" <|> string "--filename="
-    f <- many1 anyChar
-    return (openFileForLogging f)
-
-openFileForLogging :: FilePath -> IO Handle
-openFileForLogging fileName = do
-    exists <- doesFileExist fileName
-    openFile fileName (if exists then AppendMode else WriteMode)
-
---logClientMessage :: PortID -> Handle -> IO ()
+    fileName <- many1 anyChar
+    return $ do exists <- doesFileExist fileName
+                openFile fileName $ if exists then AppendMode else WriteMode
+                
+-- Given a socket and a handle to write to, will receive the message from the
+-- socket and write it to the handle.
+logClientMessage :: Socket -> Handle -> IO ()
 logClientMessage socket outH =  do
     (inH, _, _)      <- accept socket
     m                <- hGetContents inH
